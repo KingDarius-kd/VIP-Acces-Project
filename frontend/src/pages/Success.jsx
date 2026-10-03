@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { verifyPayment } from "../lib/api.js";
 
-const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER;
+const TELEGRAM_USERNAME = import.meta.env.VITE_TELEGRAM_USERNAME;
 
 export default function Success() {
   const [params] = useSearchParams();
-  // Paystack redirects back with ?reference=...&trxref=... (same value, twice)
   const tx_ref = params.get("reference") || params.get("trxref");
   const [state, setState] = useState("checking"); // checking | verified | failed
+  const [payment, setPayment] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!tx_ref) {
@@ -16,14 +17,31 @@ export default function Success() {
       return;
     }
     verifyPayment(tx_ref)
-      .then((data) => setState(data.verified ? "verified" : "failed"))
+      .then((data) => {
+        if (data.verified) {
+          setPayment(data.payment);
+          setState("verified");
+        } else {
+          setState("failed");
+        }
+      })
       .catch(() => setState("failed"));
   }, [tx_ref]);
 
-  const whatsappMessage = encodeURIComponent(
-    `Hi! I just paid for VIP access. My reference number is ${tx_ref}.`
-  );
-  const whatsappLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`;
+  const message = payment
+    ? `Hi! I just paid for ${payment.plan_label || "VIP access"}.\n` +
+      `Name: ${payment.name || "-"}\n` +
+      `Amount: ${payment.currency} ${payment.amount}\n` +
+      `Reference: ${tx_ref}`
+    : `Hi! I just paid for VIP access. My reference number is ${tx_ref}.`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(message);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  const telegramLink = `https://t.me/${TELEGRAM_USERNAME}`;
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center px-6 text-center">
@@ -38,22 +56,29 @@ export default function Success() {
             Payment received
           </h1>
           <p className="mt-2 text-sm text-sage">
-            Keep this reference number — you'll need it to get added:
+            Copy this message, then send it on Telegram to get added:
           </p>
-          <p className="mt-2 rounded-lg border border-white/10 bg-panel px-4 py-2 font-mono text-sm text-brass">
-            {tx_ref}
+
+          <button
+            onClick={handleCopy}
+            className="mt-3 w-full whitespace-pre-line rounded-lg border border-white/10 bg-panel px-4 py-3 text-left font-mono text-xs text-brass transition hover:border-brass/50"
+          >
+            {message}
+          </button>
+          <p className="mt-1 text-xs text-sage/70">
+            {copied ? "Copied!" : "Tap the box above to copy"}
           </p>
+
           <a
-            href={whatsappLink}
+            href={telegramLink}
             target="_blank"
             rel="noreferrer"
             className="mt-6 w-full rounded-lg bg-emerald py-3 font-medium text-ink transition hover:opacity-90"
           >
-            Confirm on WhatsApp
+            Open Telegram
           </a>
           <p className="mt-3 text-xs text-sage/70">
-            This opens WhatsApp with your reference already filled in — just
-            hit send.
+            This opens the chat — paste the message above and hit send.
           </p>
         </>
       )}
@@ -64,7 +89,7 @@ export default function Success() {
             We couldn't confirm this payment
           </h1>
           <p className="mt-2 text-sm text-sage">
-            If money left your account, message us on WhatsApp with your
+            If money left your account, message us on Telegram with your
             details and we'll sort it out.
           </p>
           <Link
