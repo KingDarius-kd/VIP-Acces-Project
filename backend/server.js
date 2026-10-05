@@ -14,12 +14,41 @@ const DATA_FILE = path.join(__dirname, "data", "payments.json");
 
 const app = express();
 
-// Prices live here, not in the browser — the frontend only ever sends a
-// plan id, never an amount, so nobody can pay less by editing the request.
+// Prices are set in USD (what shows on the page) but charged in GHS, since
+// that's the only currency this Paystack account is approved for. The USD
+// figure is just for display — Paystack never sees it.
 const PLANS = {
-  vip: { label: "VIP Access (2 weeks)", price: 1000, currency: "GHS" },
-  single: { label: "Single Session", price: 600, currency: "GHS" },
+  premium: { label: "Premium Group", priceUSD: 80 },
+  coaching: { label: "Private Coaching", priceUSD: 200 },
 };
+
+// Use this if the live rate lookup ever fails — update it occasionally by
+// checking a current USD→GHS rate so it doesn't drift too far from reality.
+const FALLBACK_USD_TO_GHS_RATE = 11.5;
+
+let cachedRate = null;
+let cachedAt = 0;
+const RATE_CACHE_MS = 60 * 60 * 1000; // 1 hour
+
+async function getUsdToGhsRate() {
+  const now = Date.now();
+  if (cachedRate && now - cachedAt < RATE_CACHE_MS) return cachedRate;
+
+  try {
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    const data = await res.json();
+    const rate = data?.rates?.GHS;
+    if (typeof rate === "number" && rate > 0) {
+      cachedRate = rate;
+      cachedAt = now;
+      return rate;
+    }
+    throw new Error("GHS rate missing from response");
+  } catch (err) {
+    console.error("Exchange rate lookup failed, using fallback:", err.message);
+    return FALLBACK_USD_TO_GHS_RATE;
+  }
+}
 
 // Paystack signs the *raw* request body for webhook verification, so we
 // capture it here before express.json() parses it into an object.
@@ -54,10 +83,18 @@ function savePayment(record) {
 
 // ---- routes ----------------------------------------------------------------
 
-// List the plans so the frontend never has to hardcode prices either
-app.get("/api/plans", (req, res) => {
+// List the plans with both the USD display price and the live GHS amount
+// that will actually be charged, so the frontend can show both.
+app.get("/api/plans", async (req, res) => {
+  const rate = await getUsdToGhsRate();
   res.json(
-    Object.entries(PLANS).map(([id, plan]) => ({ id, ...plan }))
+    Object.entries(PLANS).map(([id, plan]) => ({
+      id,
+      label: plan.label,
+      priceUSD: plan.priceUSD,
+      chargeAmount: Math.round(plan.priceUSD * rate),
+      chargeCurrency: "GHS",
+    }))
   );
 });
 
@@ -75,11 +112,14 @@ app.post("/api/initialize", async (req, res) => {
       return res.status(400).json({ error: "Invalid plan selected." });
     }
 
+    const rate = await getUsdToGhsRate();
+    const ghsAmount = Math.round(selectedPlan.priceUSD * rate);
+
     const tx_ref = `vip-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 
     // Paystack takes amounts in the smallest currency unit
     // (pesewas for GHS) — so multiply by 100.
-    const amountInSubunits = Math.round(selectedPlan.price * 100);
+    const amountInSubunits = Math.round(ghsAmount * 100);
 
     const response = await fetch(
       "https://api.paystack.co/transaction/initialize",
@@ -92,7 +132,7 @@ app.post("/api/initialize", async (req, res) => {
         body: JSON.stringify({
           email,
           amount: amountInSubunits,
-          currency: selectedPlan.currency,
+          currency: "GHS",
           reference: tx_ref,
           callback_url: `${process.env.FRONTEND_URL}/success`,
           metadata: {
@@ -100,6 +140,7 @@ app.post("/api/initialize", async (req, res) => {
             phone: phone || "",
             plan,
             plan_label: selectedPlan.label,
+            price_usd: selectedPlan.priceUSD,
           },
         }),
       }
@@ -144,6 +185,7 @@ app.get("/api/verify/:tx_ref", async (req, res) => {
         phone: data.data.metadata?.phone,
         plan: data.data.metadata?.plan,
         plan_label: data.data.metadata?.plan_label,
+        price_usd: data.data.metadata?.price_usd,
         paid_at: data.data.paid_at,
       };
       savePayment(record);
@@ -183,6 +225,7 @@ app.post("/api/webhook", (req, res) => {
       phone: data.metadata?.phone,
       plan: data.metadata?.plan,
       plan_label: data.metadata?.plan_label,
+      price_usd: data.metadata?.price_usd,
       paid_at: data.paid_at,
     });
   }
@@ -191,8 +234,13 @@ app.post("/api/webhook", (req, res) => {
 });
 
 // Quick way for you to check what's come in without opening the JSON file —
-// this is the list you check to manually add people to the group.
+// this is the list you check to manually add people to the group. Guarded
+// by a password since it contains customer emails and names.
 app.get("/api/payments", (req, res) => {
+  const password = req.headers["x-admin-password"];
+  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
   res.json(readPayments());
 });
 

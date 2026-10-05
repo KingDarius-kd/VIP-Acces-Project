@@ -12,7 +12,7 @@ const faqs = [
   {
     question: "How fast will I get added to the group?",
     answer:
-      "Once your payment goes through, send your reference number on WhatsApp using the button on the confirmation page. You'll be added shortly after.",
+      "Once your payment goes through, send the confirmation message on Telegram using the button on the confirmation page. You'll be added shortly after.",
   },
   {
     question: "Which payment methods can I use?",
@@ -22,12 +22,12 @@ const faqs = [
   {
     question: "What's the difference between the two plans?",
     answer:
-      "VIP Access covers a full 2 weeks in the group with daily sessions. Single Session gives you access to one live session only.",
+      "Premium Group gives you access to the shared group with daily sessions. Private Coaching is one-on-one, tailored directly to you.",
   },
   {
     question: "Can I get a refund?",
     answer:
-      "Reach out on WhatsApp within 24 hours of payment if something went wrong and we'll sort it out.",
+      "Reach out on Telegram within 24 hours of payment if something went wrong and we'll sort it out.",
   },
 ];
 
@@ -35,8 +35,34 @@ export default function Landing() {
   return (
     <main className="mx-auto max-w-xl px-6 py-16 sm:py-24">
       <header className="text-center">
-        <p className="text-sm font-medium tracking-wide text-brass">
-          VIP Access
+        <svg
+          viewBox="0 0 200 200"
+          className="mx-auto h-10 w-10"
+          aria-hidden="true"
+        >
+          <rect x="0" y="0" width="200" height="200" rx="40" fill="#0F1714" />
+          <rect x="55" y="90" width="26" height="70" rx="5" fill="#C9A227" />
+          <rect x="121" y="50" width="26" height="110" rx="5" fill="#C9A227" />
+          <line
+            x1="81"
+            y1="125"
+            x2="121"
+            y2="85"
+            stroke="#EDEAE0"
+            strokeWidth="14"
+            strokeLinecap="round"
+          />
+          <path
+            d="M143 72 L165 50 M165 50 L165 66 M165 50 L149 50"
+            fill="none"
+            stroke="#EDEAE0"
+            strokeWidth="7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+        <p className="mt-3 text-sm font-medium tracking-wide text-brass">
+          Habby Forex
         </p>
         <h1 className="mt-4 font-display text-4xl leading-tight text-ivory sm:text-5xl">
           Learn to trade with

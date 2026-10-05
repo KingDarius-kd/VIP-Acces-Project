@@ -21,3 +21,12 @@ export async function verifyPayment(tx_ref) {
   if (!res.ok) throw new Error("Could not verify payment.");
   return res.json();
 }
+
+export async function getPayments(password) {
+  const res = await fetch(`${API_URL}/api/payments`, {
+    headers: { "x-admin-password": password },
+  });
+  if (res.status === 401) throw new Error("Wrong password.");
+  if (!res.ok) throw new Error("Could not load payments.");
+  return res.json();
+}

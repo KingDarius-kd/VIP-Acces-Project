@@ -51,8 +51,7 @@ export default function PlanSelector() {
             <div className="flex items-center justify-between">
               <span className="font-medium text-ivory">{plan.label}</span>
               <span className="font-display text-xl text-ivory">
-                {plan.currency === "GHS" ? "₵" : plan.currency}
-                {plan.price}
+                ${plan.priceUSD}
               </span>
             </div>
           </button>
