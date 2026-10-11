@@ -35,34 +35,31 @@ export default function Landing() {
   return (
     <main className="mx-auto max-w-xl px-6 py-16 sm:py-24">
       <header className="text-center">
-        <svg
+                <svg
           viewBox="0 0 200 200"
           className="mx-auto h-10 w-10"
           aria-hidden="true"
         >
           <rect x="0" y="0" width="200" height="200" rx="40" fill="#0F1714" />
-          <rect x="55" y="90" width="26" height="70" rx="5" fill="#C9A227" />
-          <rect x="121" y="50" width="26" height="110" rx="5" fill="#C9A227" />
-          <line
-            x1="81"
-            y1="125"
-            x2="121"
-            y2="85"
-            stroke="#EDEAE0"
-            strokeWidth="14"
-            strokeLinecap="round"
+          <polygon
+            points="100,36 154,68 154,132 100,164 46,132 46,68"
+            fill="none"
+            stroke="#C9A227"
+            strokeWidth="8"
+            strokeLinejoin="round"
           />
-          <path
-            d="M143 72 L165 50 M165 50 L165 66 M165 50 L149 50"
+          <polyline
+            points="72,126 90,104 104,116 130,80"
             fill="none"
             stroke="#EDEAE0"
-            strokeWidth="7"
+            strokeWidth="8"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
+          <circle cx="130" cy="80" r="8" fill="#C9A227" />
         </svg>
         <p className="mt-3 text-sm font-medium tracking-wide text-brass">
-          Habby Forex
+          Trading Hub
         </p>
         <h1 className="mt-4 font-display text-4xl leading-tight text-ivory sm:text-5xl">
           Learn to trade with
@@ -70,8 +67,8 @@ export default function Landing() {
           people who'll answer you back.
         </h1>
         <p className="mx-auto mt-4 max-w-sm text-sage">
-          A focused forex training group — live sessions, real setups, and
-          direct access to ask questions as you learn.
+          A focused forex and crypto training group — live sessions, real
+          setups, and direct access to ask questions as you learn.
         </p>
       </header>
 
